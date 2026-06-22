@@ -19,7 +19,7 @@ const CONFIG = {
     ROLE_ID: '1090454328302649364',
     CHANNEL_ID: '1518140531006246982',
     VOICE_CHANNEL_ID: '1518748309400060024',
-    GUILD_ID: 'MTUxMzQ4NTgzODU2NTI0OTA4Ng.GVk3hu.5--ysZGNodq3vuBEKfFpUlppeN4CCX6O9Md7Lc', 
+    GUILD_ID: '1009291746410254337', 
     HISTORY_FILE: 'sent_stories.json',
     CITIES: ['Riyadh', 'Jeddah', 'Makkah', 'Madinah', 'Dammam', 'Taif', 'Tabuk', 'Abha', 'Jazan', 'Najran', 'Hail', 'Arar', 'Sakaka', 'Al Bahah']
 };
