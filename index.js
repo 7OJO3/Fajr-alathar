@@ -25,7 +25,22 @@ const CONFIG = {
 };
 
 let prayerTimesCache = {};
-const adhkarList = ["سبحان الله وبحمده", "استغفر الله العظيم", "لا إله إلا الله", "اللهم صلِ وسلم على نبينا محمد", "الحمد لله", "الله أكبر"];
+
+// قائمة الأذكار المحدثة بدون إيموجيات
+const adhkarList = [
+    "اللهم بك نحيا وبك نموت واليك النشور",
+    "اصبحنا واصبح الملك لله والحمدلله ولا اله الا الله وحده لا شريك له له الملك وله الحمد وهو على كل شي قدير. ربِّ أسألك خير ما في هذا اليوم وخير ما بعده، وأعوذ بك من شر ما في هذا اليوم وشر ما بعده. ربِّ أعوذ بك من الكسل وسوء الكِبَر، ربِّ أعوذ بك من عذاب في النار وعذاب في القبر",
+    "بسم الله الذي لا يضر مع اسمه شيء في الأرض ولا في السماء وهو السميع العليم (٣ مرات)",
+    "اللهم إني أصبحت أشهدك، وأشهد حملة عرشك، وملائكتك، وجميع خلقك، أنك أنت الله، لا إله إلا أنت، وحدك لا شريك لك، وأن محمداً عبدك ورسولك (٤ مرات)",
+    "اللهم من أرادني بسوء، فأشغله في نفسه، ورد كيده في نحره، واجعل تدبيره تدميره، اللهم إني فوضت أمري إليك، فاكفنيهم بما شئت",
+    "حسبي الله لا إله إلا هو عليه توكلت وهو رب العرش العظيم (٧ مرات)",
+    "رضيت بالله ربا وبالإسلام دينا وبمحمد ﷺ نبياً (٣ مرات)",
+    "يا حيُّ يا قيُّوم، برحمتك أستغيث، أصلح لي شأني كلَّه، ولا تكلني إلى نفسي طرفة عين",
+    "اللهم إني أسألك علما نافعا، ورزقا طيبا، وعملا متقبلا وشفاءً من كل داء",
+    "اللهم عافني في بدني، اللهم عافني في سمعي، اللهم عافني في بصري، لا إله إلا أنت. اللهم إني أعوذ بك من الكفر والفقر، وأعوذ بك من عذاب القبر، لا إله إلا أنت (٣ مرات)",
+    "أعوذ بكلمات الله التامات من شر ما خلق (٣ مرات)",
+    "لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير (١٠ مرات)"
+];
 
 async function updatePrayerTimes() {
     for (const city of CONFIG.CITIES) {
@@ -53,7 +68,6 @@ async function sendNewStory() {
         const newStory = stories.find(s => !history.includes(s.title));
 
         if (newStory) {
-            // رسالة القصة مستقلة
             sendEmbed(`📖 ${newStory.title}`, `لقراءة القصة كاملة: ${newStory.link}`, 0x2a4660);
             history.push(newStory.title);
             fs.writeFileSync(CONFIG.HISTORY_FILE, JSON.stringify(history));
@@ -62,15 +76,13 @@ async function sendNewStory() {
 }
 
 function sendDhikr() {
-    // رسالة الذكر مستقلة
-    sendEmbed("✨ ذكر", adhkarList[Math.floor(Math.random() * adhkarList.length)], 0x2a4660);
+    sendEmbed("ذكر", adhkarList[Math.floor(Math.random() * adhkarList.length)], 0x2a4660);
 }
 
 client.once('ready', async () => {
     await updatePrayerTimes();
     console.log("البوت متصل ويعمل!");
 
-    // إرسال فوري ومستقل
     sendDhikr();
     sendNewStory();
 
@@ -82,12 +94,8 @@ client.once('ready', async () => {
         voiceChannel.permissionOverwrites.edit(voiceChannel.guild.id, { Connect: false });
     }
 
-    // ذكر كل ساعة
     cron.schedule('0 * * * *', sendDhikr);
-
-    // قصة كل نصف ساعة
     cron.schedule('*/30 * * * *', sendNewStory);
-
     cron.schedule('0 1 * * *', updatePrayerTimes);
 });
 
@@ -96,7 +104,7 @@ client.on('messageCreate', async (message) => {
     if (message.content.startsWith('!اذكار')) {
         if (!message.member.roles.cache.has(CONFIG.ROLE_ID)) return message.reply("عذراً، ليس لديك الرتبة المطلوبة.");
         const text = message.content.replace('!اذكار', '').trim();
-        if (text) { sendEmbed('✨ ذكر من العضو', text, 0x2a4660); }
+        if (text) { sendEmbed('ذكر من العضو', text, 0x2a4660); }
     }
 });
 
@@ -115,7 +123,7 @@ cron.schedule('* * * * *', () => {
             if (timings[prayer] === timeString) {
                 client.channels.cache.get(CONFIG.CHANNEL_ID).send({ 
                     content: `<@&${CONFIG.ROLE_ID}>`,
-                    embeds: [new EmbedBuilder().setTitle(`🕋 وقت أذان ${prayer} في ${city}`).setDescription("دعاء بين الأذان والإقامة لا يُرد.").setColor(0x2a4660)] 
+                    embeds: [new EmbedBuilder().setTitle(`وقت أذان ${prayer} في ${city}`).setDescription("دعاء بين الأذان والإقامة لا يُرد.").setColor(0x2a4660)] 
                 });
             }
         }
