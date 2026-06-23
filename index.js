@@ -25,6 +25,7 @@ const CONFIG = {
 };
 
 let prayerTimesCache = {};
+const adhkarList = ["سبحان الله وبحمده", "استغفر الله العظيم", "لا إله إلا الله", "اللهم صلِ وسلم على نبينا محمد", "الحمد لله", "الله أكبر"];
 
 async function updatePrayerTimes() {
     for (const city of CONFIG.CITIES) {
@@ -35,32 +36,53 @@ async function updatePrayerTimes() {
     }
 }
 
+async function sendNewStory() {
+    try {
+        const { data } = await axios.get('https://islamstory.com/ar/artical/category/25/%D9%82%D8%B5%D8%B5-%D8%A7%D9%84%D8%B5%D8%AD%D8%A7%D8%A8%D8%A9');
+        const $ = cheerio.load(data);
+        const stories = [];
+        $('.item-title a').each((i, el) => {
+            stories.push({ title: $(el).text().trim(), link: 'https://islamstory.com' + $(el).attr('href') });
+        });
+
+        let history = JSON.parse(fs.readFileSync(CONFIG.HISTORY_FILE, 'utf8'));
+        const newStory = stories.find(s => !history.includes(s.title));
+
+        if (newStory) {
+            sendEmbed(`📖 ${newStory.title}`, `لقراءة القصة كاملة: ${newStory.link}`, 0x2a4660);
+            history.push(newStory.title);
+            fs.writeFileSync(CONFIG.HISTORY_FILE, JSON.stringify(history));
+        }
+    } catch (e) { console.error("خطأ في جلب القصة:", e); }
+}
+
 client.once('ready', async () => {
     await updatePrayerTimes();
     console.log("البوت متصل ويعمل!");
 
-    // 1. الستريمنق
+    // إرسال فوري عند التشغيل (الدفعة الأولى)
+    sendEmbed("✨ البوت متصل", "تم تشغيل البوت بنجاح، سأرسل الذكر كل ساعة والقصة كل نصف ساعة من الآن.", 0x2a4660);
+    sendNewStory();
+
     client.user.setActivity('قصص دينية وعبر', { type: ActivityType.Streaming, url: 'https://www.twitch.tv/monstercat' });
 
-    // 2. دخول الروم الصوتي وقفله
     const voiceChannel = client.channels.cache.get(CONFIG.VOICE_CHANNEL_ID);
     if (voiceChannel) {
         joinVoiceChannel({ channelId: voiceChannel.id, guildId: CONFIG.GUILD_ID, adapterCreator: voiceChannel.guild.voiceAdapterCreator });
         voiceChannel.permissionOverwrites.edit(voiceChannel.guild.id, { Connect: false });
     }
 
-    // 3. أذكار الصباح الكاملة
-    cron.schedule('0 5 * * *', () => sendEmbed('🌅 أذكار الصباح', 
-        '• آية الكرسي\n• سورة الإخلاص، والفلق، والناس (ثلاث مرات)\n• اللهم بك أصبحنا، وبك أمسينا، وبك نحيا، وبك نموت، وإليك النشور\n• أصبحنا وأصبح الملك لله، والحمد لله، لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير\n• اللهم ما أصبح بي من نعمة أو بأحد من خلقك فمنك وحدك لا شريك لك، فلك الحمد ولك الشكر\n• رضيت بالله رباً، وبالإسلام ديناً، وبمحمد صلى الله عليه وسلم نبياً (ثلاث مرات)\n• سبحان الله وبحمده عدد خلقه، ورضا نفسه، وزنة عرشه، ومداد كلماته (ثلاث مرات)', 0x2a4660));
+    // ذكر كل ساعة
+    cron.schedule('0 * * * *', () => {
+        sendEmbed("✨ ذكر الساعة", adhkarList[Math.floor(Math.random() * adhkarList.length)], 0x2a4660);
+    });
 
-    // 4. أذكار المساء الكاملة
-    cron.schedule('0 17 * * *', () => sendEmbed('🌆 أذكار المساء', 
-        '• آية الكرسي\n• سورة الإخلاص، والفلق، والناس (ثلاث مرات)\n• أمسينا وأمسى الملك لله، والحمد لله، لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير\n• اللهم بك أمسينا، وبك أصبحنا، وبك نحيا، وبك نموت، وإليك المصير\n• اللهم ما أمسى بي من نعمة أو بأحد من خلقك فمنك وحدك لا شريك لك، فلك الحمد ولك الشكر\n• بسم الله الذي لا يضر مع اسمه شيء في الأرض ولا في السماء وهو السميع العليم (ثلاث مرات)\n• أعوذ بكلمات الله التامات من شر ما خلق (ثلاث مرات)', 0x2a4660));
+    // قصة كل نصف ساعة
+    cron.schedule('*/30 * * * *', sendNewStory);
 
     cron.schedule('0 1 * * *', updatePrayerTimes);
 });
 
-// 5. نظام الأوامر (!اذكار)
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
     if (message.content.startsWith('!اذكار')) {
@@ -70,7 +92,6 @@ client.on('messageCreate', async (message) => {
     }
 });
 
-// دالة موحدة للإرسال
 function sendEmbed(title, description, color) {
     client.channels.cache.get(CONFIG.CHANNEL_ID)?.send({
         content: `<@&${CONFIG.ROLE_ID}>`,
@@ -78,7 +99,6 @@ function sendEmbed(title, description, color) {
     });
 }
 
-// 6. مواقيت الصلاة
 cron.schedule('* * * * *', () => {
     const timeString = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
     for (const city in prayerTimesCache) {
