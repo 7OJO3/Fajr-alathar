@@ -26,7 +26,6 @@ const CONFIG = {
 
 let prayerTimesCache = {};
 
-// قائمة الأذكار المحدثة بدون إيموجيات
 const adhkarList = [
     "اللهم بك نحيا وبك نموت واليك النشور",
     "اصبحنا واصبح الملك لله والحمدلله ولا اله الا الله وحده لا شريك له له الملك وله الحمد وهو على كل شي قدير. ربِّ أسألك خير ما في هذا اليوم وخير ما بعده، وأعوذ بك من شر ما في هذا اليوم وشر ما بعده. ربِّ أعوذ بك من الكسل وسوء الكِبَر، ربِّ أعوذ بك من عذاب في النار وعذاب في القبر",
@@ -83,8 +82,9 @@ client.once('ready', async () => {
     await updatePrayerTimes();
     console.log("البوت متصل ويعمل!");
 
+    // إرسال الدفعة الأولى بفاصل زمني لضمان ظهور الرسالتين
     sendDhikr();
-    sendNewStory();
+    setTimeout(sendNewStory, 5000); 
 
     client.user.setActivity('قصص دينية وعبر', { type: ActivityType.Streaming, url: 'https://www.twitch.tv/monstercat' });
 
