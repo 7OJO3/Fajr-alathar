@@ -53,14 +53,20 @@ async function updatePrayerTimes() {
 
 async function sendNewStory() {
     try {
-        // إضافة User-Agent لضمان قبول الموقع للطلب
-        const { data } = await axios.get('https://islamstory.com/ar/artical/category/25/%D9%82%D8%B5%D8%B5-%D8%A7%D9%84%D8%B5%D8%AD%D8%A7%D8%A8%D8%A9', {
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36' }
+        // تم تغيير المصدر إلى صيد الفوائد لقوة استقرار الرابط
+        const { data } = await axios.get('https://saaid.net/wahiaat/index.php', {
+            headers: { 'User-Agent': 'Mozilla/5.0' }
         });
         const $ = cheerio.load(data);
         const stories = [];
-        $('.item-title a').each((i, el) => {
-            stories.push({ title: $(el).text().trim(), link: 'https://islamstory.com' + $(el).attr('href') });
+        
+        // جلب عناوين القصص والفوائد من الموقع الجديد
+        $('a').each((i, el) => {
+            const title = $(el).text().trim();
+            const href = $(el).attr('href');
+            if (title.length > 20 && href && href.includes('wahiaat')) {
+                stories.push({ title: title, link: 'https://saaid.net/wahiaat/' + href });
+            }
         });
 
         let history = [];
@@ -74,9 +80,6 @@ async function sendNewStory() {
             sendEmbed(`📖 ${newStory.title}`, `لقراءة القصة كاملة: ${newStory.link}`, 0x2a4660);
             history.push(newStory.title);
             fs.writeFileSync(CONFIG.HISTORY_FILE, JSON.stringify(history));
-            console.log("تم إرسال قصة جديدة بنجاح");
-        } else {
-            console.log("لا توجد قصص جديدة لم تُرسل بعد.");
         }
     } catch (e) { console.error("خطأ في جلب القصة:", e); }
 }
@@ -89,9 +92,8 @@ client.once('ready', async () => {
     await updatePrayerTimes();
     console.log("البوت متصل ويعمل!");
 
-    // إرسال الدفعة الأولى عند التشغيل
     sendDhikr();
-    setTimeout(sendNewStory, 5000); // تأخير بسيط لضمان الترتيب
+    sendNewStory();
 
     client.user.setActivity('قصص دينية وعبر', { type: ActivityType.Streaming, url: 'https://www.twitch.tv/monstercat' });
 
