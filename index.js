@@ -45,10 +45,15 @@ async function sendNewStory() {
             stories.push({ title: $(el).text().trim(), link: 'https://islamstory.com' + $(el).attr('href') });
         });
 
-        let history = JSON.parse(fs.readFileSync(CONFIG.HISTORY_FILE, 'utf8'));
+        let history = [];
+        if (fs.existsSync(CONFIG.HISTORY_FILE)) {
+            history = JSON.parse(fs.readFileSync(CONFIG.HISTORY_FILE, 'utf8'));
+        }
+        
         const newStory = stories.find(s => !history.includes(s.title));
 
         if (newStory) {
+            // رسالة القصة مستقلة
             sendEmbed(`📖 ${newStory.title}`, `لقراءة القصة كاملة: ${newStory.link}`, 0x2a4660);
             history.push(newStory.title);
             fs.writeFileSync(CONFIG.HISTORY_FILE, JSON.stringify(history));
@@ -56,12 +61,17 @@ async function sendNewStory() {
     } catch (e) { console.error("خطأ في جلب القصة:", e); }
 }
 
+function sendDhikr() {
+    // رسالة الذكر مستقلة
+    sendEmbed("✨ ذكر", adhkarList[Math.floor(Math.random() * adhkarList.length)], 0x2a4660);
+}
+
 client.once('ready', async () => {
     await updatePrayerTimes();
     console.log("البوت متصل ويعمل!");
 
-    // إرسال فوري عند التشغيل (الدفعة الأولى)
-    sendEmbed("✨ البوت متصل", "تم تشغيل البوت بنجاح، سأرسل الذكر كل ساعة والقصة كل نصف ساعة من الآن.", 0x2a4660);
+    // إرسال فوري ومستقل
+    sendDhikr();
     sendNewStory();
 
     client.user.setActivity('قصص دينية وعبر', { type: ActivityType.Streaming, url: 'https://www.twitch.tv/monstercat' });
@@ -73,9 +83,7 @@ client.once('ready', async () => {
     }
 
     // ذكر كل ساعة
-    cron.schedule('0 * * * *', () => {
-        sendEmbed("✨ ذكر الساعة", adhkarList[Math.floor(Math.random() * adhkarList.length)], 0x2a4660);
-    });
+    cron.schedule('0 * * * *', sendDhikr);
 
     // قصة كل نصف ساعة
     cron.schedule('*/30 * * * *', sendNewStory);
