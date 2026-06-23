@@ -26,6 +26,7 @@ const CONFIG = {
 
 let prayerTimesCache = {};
 
+// قائمة الأذكار المحدثة بدون إيموجيات
 const adhkarList = [
     "اللهم بك نحيا وبك نموت واليك النشور",
     "اصبحنا واصبح الملك لله والحمدلله ولا اله الا الله وحده لا شريك له له الملك وله الحمد وهو على كل شي قدير. ربِّ أسألك خير ما في هذا اليوم وخير ما بعده، وأعوذ بك من شر ما في هذا اليوم وشر ما بعده. ربِّ أعوذ بك من الكسل وسوء الكِبَر، ربِّ أعوذ بك من عذاب في النار وعذاب في القبر",
@@ -52,8 +53,9 @@ async function updatePrayerTimes() {
 
 async function sendNewStory() {
     try {
+        // إضافة User-Agent لضمان قبول الموقع للطلب
         const { data } = await axios.get('https://islamstory.com/ar/artical/category/25/%D9%82%D8%B5%D8%B5-%D8%A7%D9%84%D8%B5%D8%AD%D8%A7%D8%A8%D8%A9', {
-            headers: { 'User-Agent': 'Mozilla/5.0' }
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36' }
         });
         const $ = cheerio.load(data);
         const stories = [];
@@ -63,9 +65,7 @@ async function sendNewStory() {
 
         let history = [];
         if (fs.existsSync(CONFIG.HISTORY_FILE)) {
-            try {
-                history = JSON.parse(fs.readFileSync(CONFIG.HISTORY_FILE, 'utf8'));
-            } catch (e) { history = []; }
+            try { history = JSON.parse(fs.readFileSync(CONFIG.HISTORY_FILE, 'utf8')); } catch (e) { history = []; }
         }
         
         const newStory = stories.find(s => !history.includes(s.title));
@@ -74,8 +74,9 @@ async function sendNewStory() {
             sendEmbed(`📖 ${newStory.title}`, `لقراءة القصة كاملة: ${newStory.link}`, 0x2a4660);
             history.push(newStory.title);
             fs.writeFileSync(CONFIG.HISTORY_FILE, JSON.stringify(history));
+            console.log("تم إرسال قصة جديدة بنجاح");
         } else {
-            console.log("لا توجد قصص جديدة حالياً.");
+            console.log("لا توجد قصص جديدة لم تُرسل بعد.");
         }
     } catch (e) { console.error("خطأ في جلب القصة:", e); }
 }
@@ -88,8 +89,9 @@ client.once('ready', async () => {
     await updatePrayerTimes();
     console.log("البوت متصل ويعمل!");
 
+    // إرسال الدفعة الأولى عند التشغيل
     sendDhikr();
-    setTimeout(sendNewStory, 5000); 
+    setTimeout(sendNewStory, 5000); // تأخير بسيط لضمان الترتيب
 
     client.user.setActivity('قصص دينية وعبر', { type: ActivityType.Streaming, url: 'https://www.twitch.tv/monstercat' });
 
