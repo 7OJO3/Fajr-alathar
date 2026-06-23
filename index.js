@@ -3,7 +3,6 @@ const { Client, GatewayIntentBits, EmbedBuilder, ActivityType } = require('disco
 const { joinVoiceChannel } = require('@discordjs/voice');
 const cron = require('node-cron');
 const axios = require('axios');
-const cheerio = require('cheerio');
 const fs = require('fs');
 
 const client = new Client({ 
@@ -21,7 +20,7 @@ const CONFIG = {
     VOICE_CHANNEL_ID: '1518748309400060024',
     GUILD_ID: '1009291746410254337', 
     HISTORY_FILE: 'sent_stories.json',
-    LINKS_FILE: 'links.txt',
+    STORIES_FILE: 'stories.json',
     CITIES: ['Riyadh', 'Jeddah', 'Makkah', 'Madinah', 'Dammam', 'Taif', 'Tabuk', 'Abha', 'Jazan', 'Najran', 'Hail', 'Arar', 'Sakaka', 'Al Bahah']
 };
 
@@ -53,26 +52,24 @@ async function updatePrayerTimes() {
 
 async function sendNewStory() {
     try {
-        if (!fs.existsSync(CONFIG.LINKS_FILE)) return console.log("ملف links.txt غير موجود!");
+        if (!fs.existsSync(CONFIG.STORIES_FILE)) return console.log("ملف القصص غير موجود!");
+        const allStories = JSON.parse(fs.readFileSync(CONFIG.STORIES_FILE, 'utf8'));
         
-        const links = fs.readFileSync(CONFIG.LINKS_FILE, 'utf8').split('\n').filter(l => l.trim() !== "");
         let history = [];
         if (fs.existsSync(CONFIG.HISTORY_FILE)) {
             try { history = JSON.parse(fs.readFileSync(CONFIG.HISTORY_FILE, 'utf8')); } catch (e) { history = []; }
         }
         
-        const newLink = links.find(l => !history.includes(l.trim()));
+        const newStory = allStories.find(s => !history.includes(s.title));
 
-        if (newLink) {
-            const { data } = await axios.get(newLink.trim(), { headers: { 'User-Agent': 'Mozilla/5.0' } });
-            const $ = cheerio.load(data);
-            const title = $('h1').text().trim() || "قصة وعبرة";
-            
-            sendEmbed(`📖 ${title}`, `لقراءة القصة كاملة: ${newLink.trim()}`, 0x2a4660);
-            history.push(newLink.trim());
+        if (newStory) {
+            sendEmbed(`📖 ${newStory.title}`, `لقراءة القصة كاملة: ${newStory.link}`, 0x2a4660);
+            history.push(newStory.title);
             fs.writeFileSync(CONFIG.HISTORY_FILE, JSON.stringify(history));
+        } else {
+            console.log("تم إرسال جميع القصص.");
         }
-    } catch (e) { console.error("خطأ في جلب القصة من الملف:", e); }
+    } catch (e) { console.error("خطأ في قراءة ملف القصص:", e); }
 }
 
 function sendDhikr() {
