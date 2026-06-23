@@ -23,6 +23,14 @@ const CONFIG = {
 
 let prayerTimesCache = {};
 
+const prayerNames = {
+    'Fajr': 'الفجر',
+    'Dhuhr': 'الظهر',
+    'Asr': 'العصر',
+    'Maghrib': 'المغرب',
+    'Isha': 'العشاء'
+};
+
 const adhkarList = [
     "اللهم بك نحيا وبك نموت واليك النشور",
     "اصبحنا واصبح الملك لله والحمدلله ولا اله الا الله وحده لا شريك له له الملك وله الحمد وهو على كل شي قدير. ربِّ أسألك خير ما في هذا اليوم وخير ما بعده، وأعوذ بك من شر ما في هذا اليوم وشر ما بعده. ربِّ أعوذ بك من الكسل وسوء الكِبَر، ربِّ أعوذ بك من عذاب في النار وعذاب في القبر",
@@ -87,13 +95,18 @@ function sendEmbed(title, description, color) {
 
 cron.schedule('* * * * *', () => {
     const timeString = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-    for (const city in prayerTimesCache) {
+    for (const city of CONFIG.CITIES) {
         const timings = prayerTimesCache[city];
-        for (const prayer of ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha']) {
+        if (!timings) continue;
+        
+        for (const prayer in prayerNames) {
             if (timings[prayer] === timeString) {
                 client.channels.cache.get(CONFIG.CHANNEL_ID).send({ 
                     content: `<@&${CONFIG.ROLE_ID}>`,
-                    embeds: [new EmbedBuilder().setTitle(`وقت أذان ${prayer} في ${city}`).setDescription("دعاء بين الأذان والإقامة لا يُرد.").setColor(0x2a4660)] 
+                    embeds: [new EmbedBuilder()
+                        .setTitle(`حان الآن وقت أذان ${prayerNames[prayer]} في مدينة ${city}`)
+                        .setDescription("دعاء بين الأذان والإقامة لا يُرد.")
+                        .setColor(0x2a4660)] 
                 });
             }
         }
