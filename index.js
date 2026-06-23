@@ -52,7 +52,9 @@ async function updatePrayerTimes() {
 
 async function sendNewStory() {
     try {
-        const { data } = await axios.get('https://islamstory.com/ar/artical/category/25/%D9%82%D8%B5%D8%B5-%D8%A7%D9%84%D8%B5%D8%AD%D8%A7%D8%A8%D8%A9');
+        const { data } = await axios.get('https://islamstory.com/ar/artical/category/25/%D9%82%D8%B5%D8%B5-%D8%A7%D9%84%D8%B5%D8%AD%D8%A7%D8%A8%D8%A9', {
+            headers: { 'User-Agent': 'Mozilla/5.0' }
+        });
         const $ = cheerio.load(data);
         const stories = [];
         $('.item-title a').each((i, el) => {
@@ -61,7 +63,9 @@ async function sendNewStory() {
 
         let history = [];
         if (fs.existsSync(CONFIG.HISTORY_FILE)) {
-            history = JSON.parse(fs.readFileSync(CONFIG.HISTORY_FILE, 'utf8'));
+            try {
+                history = JSON.parse(fs.readFileSync(CONFIG.HISTORY_FILE, 'utf8'));
+            } catch (e) { history = []; }
         }
         
         const newStory = stories.find(s => !history.includes(s.title));
@@ -70,6 +74,8 @@ async function sendNewStory() {
             sendEmbed(`📖 ${newStory.title}`, `لقراءة القصة كاملة: ${newStory.link}`, 0x2a4660);
             history.push(newStory.title);
             fs.writeFileSync(CONFIG.HISTORY_FILE, JSON.stringify(history));
+        } else {
+            console.log("لا توجد قصص جديدة حالياً.");
         }
     } catch (e) { console.error("خطأ في جلب القصة:", e); }
 }
@@ -82,7 +88,6 @@ client.once('ready', async () => {
     await updatePrayerTimes();
     console.log("البوت متصل ويعمل!");
 
-    // إرسال الدفعة الأولى بفاصل زمني لضمان ظهور الرسالتين
     sendDhikr();
     setTimeout(sendNewStory, 5000); 
 
