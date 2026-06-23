@@ -21,12 +21,12 @@ const CONFIG = {
     VOICE_CHANNEL_ID: '1518748309400060024',
     GUILD_ID: '1009291746410254337', 
     HISTORY_FILE: 'sent_stories.json',
+    LINKS_FILE: 'links.txt',
     CITIES: ['Riyadh', 'Jeddah', 'Makkah', 'Madinah', 'Dammam', 'Taif', 'Tabuk', 'Abha', 'Jazan', 'Najran', 'Hail', 'Arar', 'Sakaka', 'Al Bahah']
 };
 
 let prayerTimesCache = {};
 
-// قائمة الأذكار المحدثة بدون إيموجيات
 const adhkarList = [
     "اللهم بك نحيا وبك نموت واليك النشور",
     "اصبحنا واصبح الملك لله والحمدلله ولا اله الا الله وحده لا شريك له له الملك وله الحمد وهو على كل شي قدير. ربِّ أسألك خير ما في هذا اليوم وخير ما بعده، وأعوذ بك من شر ما في هذا اليوم وشر ما بعده. ربِّ أعوذ بك من الكسل وسوء الكِبَر، ربِّ أعوذ بك من عذاب في النار وعذاب في القبر",
@@ -53,35 +53,26 @@ async function updatePrayerTimes() {
 
 async function sendNewStory() {
     try {
-        // تم تغيير المصدر إلى صيد الفوائد لقوة استقرار الرابط
-        const { data } = await axios.get('https://saaid.net/wahiaat/index.php', {
-            headers: { 'User-Agent': 'Mozilla/5.0' }
-        });
-        const $ = cheerio.load(data);
-        const stories = [];
+        if (!fs.existsSync(CONFIG.LINKS_FILE)) return console.log("ملف links.txt غير موجود!");
         
-        // جلب عناوين القصص والفوائد من الموقع الجديد
-        $('a').each((i, el) => {
-            const title = $(el).text().trim();
-            const href = $(el).attr('href');
-            if (title.length > 20 && href && href.includes('wahiaat')) {
-                stories.push({ title: title, link: 'https://saaid.net/wahiaat/' + href });
-            }
-        });
-
+        const links = fs.readFileSync(CONFIG.LINKS_FILE, 'utf8').split('\n').filter(l => l.trim() !== "");
         let history = [];
         if (fs.existsSync(CONFIG.HISTORY_FILE)) {
             try { history = JSON.parse(fs.readFileSync(CONFIG.HISTORY_FILE, 'utf8')); } catch (e) { history = []; }
         }
         
-        const newStory = stories.find(s => !history.includes(s.title));
+        const newLink = links.find(l => !history.includes(l.trim()));
 
-        if (newStory) {
-            sendEmbed(`📖 ${newStory.title}`, `لقراءة القصة كاملة: ${newStory.link}`, 0x2a4660);
-            history.push(newStory.title);
+        if (newLink) {
+            const { data } = await axios.get(newLink.trim(), { headers: { 'User-Agent': 'Mozilla/5.0' } });
+            const $ = cheerio.load(data);
+            const title = $('h1').text().trim() || "قصة وعبرة";
+            
+            sendEmbed(`📖 ${title}`, `لقراءة القصة كاملة: ${newLink.trim()}`, 0x2a4660);
+            history.push(newLink.trim());
             fs.writeFileSync(CONFIG.HISTORY_FILE, JSON.stringify(history));
         }
-    } catch (e) { console.error("خطأ في جلب القصة:", e); }
+    } catch (e) { console.error("خطأ في جلب القصة من الملف:", e); }
 }
 
 function sendDhikr() {
@@ -93,7 +84,7 @@ client.once('ready', async () => {
     console.log("البوت متصل ويعمل!");
 
     sendDhikr();
-    sendNewStory();
+    setTimeout(sendNewStory, 5000);
 
     client.user.setActivity('قصص دينية وعبر', { type: ActivityType.Streaming, url: 'https://www.twitch.tv/monstercat' });
 
