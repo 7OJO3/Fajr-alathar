@@ -17,18 +17,7 @@ const CONFIG = {
     ROLE_ID: '1090454328302649364',
     CHANNEL_ID: '1518140531006246982',
     VOICE_CHANNEL_ID: '1518748309400060024',
-    GUILD_ID: '1009291746410254337', 
-    CITIES: ['Riyadh', 'Jeddah', 'Makkah', 'Madinah', 'Dammam', 'Taif', 'Tabuk', 'Abha', 'Jazan', 'Najran', 'Hail', 'Arar', 'Sakaka', 'Al Bahah']
-};
-
-let prayerTimesCache = {};
-
-const prayerNames = {
-    'Fajr': 'الفجر',
-    'Dhuhr': 'الظهر',
-    'Asr': 'العصر',
-    'Maghrib': 'المغرب',
-    'Isha': 'العشاء'
+    GUILD_ID: '1009291746410254337'
 };
 
 const adhkarList = [
@@ -46,26 +35,16 @@ const adhkarList = [
     "لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير (١٠ مرات)"
 ];
 
-async function updatePrayerTimes() {
-    for (const city of CONFIG.CITIES) {
-        try {
-            const res = await axios.get(`https://api.aladhan.com/v1/timingsByCity?city=${city}&country=Saudi%20Arabia&method=4`);
-            prayerTimesCache[city] = res.data.data.timings;
-        } catch (e) { console.error(`خطأ في تحديث ${city}:`, e); }
-    }
-}
-
 function sendDhikr() {
     sendEmbed("ذكر", adhkarList[Math.floor(Math.random() * adhkarList.length)], 0x2a4660);
 }
 
 client.once('ready', async () => {
-    await updatePrayerTimes();
     console.log("البوت متصل ويعمل!");
 
     sendDhikr();
 
-    client.user.setActivity('أذكار وأذان', { type: ActivityType.Streaming, url: 'https://www.twitch.tv/monstercat' });
+    client.user.setActivity('الأذكار', { type: ActivityType.Streaming, url: 'https://www.twitch.tv/monstercat' });
 
     const voiceChannel = client.channels.cache.get(CONFIG.VOICE_CHANNEL_ID);
     if (voiceChannel) {
@@ -74,7 +53,6 @@ client.once('ready', async () => {
     }
 
     cron.schedule('0 * * * *', sendDhikr);
-    cron.schedule('0 1 * * *', updatePrayerTimes);
 });
 
 client.on('messageCreate', async (message) => {
@@ -92,25 +70,5 @@ function sendEmbed(title, description, color) {
         embeds: [new EmbedBuilder().setTitle(title).setDescription(description).setColor(color)]
     });
 }
-
-cron.schedule('* * * * *', () => {
-    const timeString = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-    for (const city of CONFIG.CITIES) {
-        const timings = prayerTimesCache[city];
-        if (!timings) continue;
-        
-        for (const prayer in prayerNames) {
-            if (timings[prayer] === timeString) {
-                client.channels.cache.get(CONFIG.CHANNEL_ID).send({ 
-                    content: `<@&${CONFIG.ROLE_ID}>`,
-                    embeds: [new EmbedBuilder()
-                        .setTitle(`حان الآن وقت أذان ${prayerNames[prayer]} في مدينة ${city}`)
-                        .setDescription("دعاء بين الأذان والإقامة لا يُرد.")
-                        .setColor(0x2a4660)] 
-                });
-            }
-        }
-    }
-});
 
 client.login(process.env.TOKEN);
